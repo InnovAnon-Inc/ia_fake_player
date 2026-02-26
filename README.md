@@ -1,7 +1,7 @@
-Minetest mod: `feed_buckets`
+Minetest mod: `ia_fake_player`
 ========================
 
-Add buckets of feeds which can be used to feed up to 8 nearby animals.
+Bridge the Minetest Player & Entity APIs
 
 Source code:
 -----------------------
