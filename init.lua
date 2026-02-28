@@ -235,7 +235,7 @@ function ia_fake_player:hud_set_hotbar_selected_image(texturename)
 end
 
 function ia_fake_player:set_minimap_modes(modes, selected_mode)
-  return self.object:set_minimap_mdoes(mdoes, selected_mode)
+  return self.object:set_minimap_modes(modes, selected_mode)
 end
 
 function ia_fake_player:get_sky()
