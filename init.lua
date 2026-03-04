@@ -1,4 +1,21 @@
-ia_fake_player = {}
+-- ia_fake_player/init.lua
+
+assert(minetest.get_modpath('ia_util'))
+assert(ia_util ~= nil)
+local modname                    = minetest.get_current_modname() or "ia_fake_player"
+local storage                    = minetest.get_mod_storage()
+ia_fake_player                   = {}
+--local files                      = {
+--	-- TODO put player & entity common API here
+--	--'common.lua',
+--	-- TODO put entity-specific API here
+--	--'entity.lua',
+--	--TODO put player-specific API here
+--	--'player.lua',
+--}
+local modpath, S                 = ia_util.loadmod(modname)
+local log                        = ia_util.get_logger(modname)
+local assert                     = ia_util.get_assert(modname)
 
 -- adapted from `feed_buckets`
 
