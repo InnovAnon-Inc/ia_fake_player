@@ -1,323 +1,257 @@
+---- ia_fake_player/init.lua
+---- adapted from `feed_buckets`
+--
+--assert(minetest.get_modpath('ia_util'))
+--assert(ia_util ~= nil)
+--local modname                    = minetest.get_current_modname() or "ia_fake_player"
+--local storage                    = minetest.get_mod_storage()
+--ia_fake_player                   = {}
+--
+---- Store originals to prevent infinite recursion in overrides
+--ia_fake_player.engine_get_connected_players = minetest.get_connected_players
+--ia_fake_player.engine_get_player_by_name = minetest.get_player_by_name
+--ia_fake_player.engine_check_player_privs = minetest.check_player_privs
+--ia_fake_player.engine_get_player_information = minetest.get_player_information
+--
+--local modpath, S                 = ia_util.loadmod(modname)
+--local log                        = ia_util.get_logger(modname)
+--local assert                     = ia_util.get_assert(modname)
+--
+-------------------------------------------------------------
+---- 1. Engine API Monkeypatching (Overrides)
+-------------------------------------------------------------
+--
+---- Redirects to logic in names.lua which merges engine and fake players
+--minetest.get_connected_players = function()
+--    return ia_fake_player.get_all_actors()
+--end
+--
+---- Checks engine first, then checks the naming registry
+--minetest.get_player_by_name = function(name)
+--    assert(type(name) == "string", "minetest.get_player_by_name: name must be a string")
+--    return ia_fake_player.get_actor_by_name(name)
+--end
+--
+---- Routes to privilege logic in names.lua
+--minetest.check_player_privs = function(name, privs)
+--    return ia_fake_player.check_actor_privs(name, privs)
+--end
+--core.check_player_privs = minetest.check_player_privs
+--
+----- Overwrite the engine function to support fake players
+--minetest.get_player_information = function(name)
+--    return ia_fake_player.get_actor_information(name)
+--end
+--
+-------------------------------------------------------------
+---- 2. Event Emulation (The "Online" Illusion)
+-------------------------------------------------------------
+--
+----- Triggers virtual join events for a fake player
+---- This ensures mods like hunger_ng initialize metadata for the actor.
+--function ia_fake_player.trigger_join(actor)
+--    -- Resolve the bridged interface to avoid "bad self" when calling engine methods
+--    local player = ia_fake_player.get_interface(actor)
+--    assert(player and player.get_player_name, "trigger_join: Invalid actor or interface")
+--    
+--    local name = player:get_player_name()
+--
+--    -- Ensure the actor is retrievable by name BEFORE triggering callbacks
+--    -- so that on_joinplayer functions can find the "player" object.
+--    -- (This is handled by the naming registry in names.lua)
+--
+--    for _, callback in ipairs(minetest.registered_on_joinplayers) do
+--        callback(player)
+--    end
+--end
+--
+----- Triggers virtual leave events and performs cleanup
+--function ia_fake_player.trigger_leave(actor, timeout)
+--    local player = ia_fake_player.get_interface(actor)
+--    assert(player and player.get_player_name, "trigger_leave: Invalid actor or interface")
+--    
+--    local name = player:get_player_name()
+--
+--    for _, callback in ipairs(minetest.registered_on_leaveplayers) do
+--        callback(player, timeout or false)
+--    end
+--
+--    -- Cleanup the naming registry and mirrors
+--    ia_fake_player.release_name(name)
+--    ia_fake_player.cleanup_entity(player)
+--end
+--
+----- Emulates a player being punched (triggers registered_on_punchplayers)
+--function ia_fake_player.trigger_punch(actor, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+--    local player = ia_fake_player.get_interface(actor)
+--    assert(player and player.get_player_name, "trigger_punch: Invalid actor or interface")
+--
+--    for _, callback in ipairs(minetest.registered_on_punchplayers) do
+--        local result = callback(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+--        if result == true then return true end
+--    end
+--    return false
+--end
+--
+----- Emulates a player right-clicking (triggers registered_on_rightclickplayers)
+--function ia_fake_player.trigger_rightclick(actor, clicker)
+--    local player = ia_fake_player.get_interface(actor)
+--    assert(player and player.get_player_name, "trigger_rightclick: Invalid actor or interface")
+--
+--    for _, callback in ipairs(minetest.registered_on_rightclickplayers) do
+--        callback(player, clicker)
+--    end
+--end
+--
+-------------------------------------------------------------
+---- 3. Global Lifecycle Mirroring
+-------------------------------------------------------------
+--
+---- Global step hook for mods that track player-specific periodic logic
+--minetest.register_globalstep(function(dtime)
+--    local mobs = ia_fake_player.get_connected_mobs()
+--    if #mobs == 0 then return end
+--    
+--    for _, mob in ipairs(mobs) do
+--        -- Ensure we have the bridged interface for the global step
+--        local player = ia_fake_player.get_interface(mob)
+--        if player then
+--            -- Logic: Ensure inventory mirrors stay semi-synced
+--            local inv = player:get_inventory()
+--            local detached_name = player.data and player.data.detached_name
+--            if inv and detached_name then
+--                 -- Optimization: only sync "main" on global step
+--                 ia_fake_player:sync_to_detached(inv, detached_name, "main")
+--            end
+--        end
+--    end
+--end)
 -- ia_fake_player/init.lua
+-- adapted from `feed_buckets`
 
 assert(minetest.get_modpath('ia_util'))
 assert(ia_util ~= nil)
 local modname                    = minetest.get_current_modname() or "ia_fake_player"
 local storage                    = minetest.get_mod_storage()
 ia_fake_player                   = {}
---local files                      = {
---	-- TODO put player & entity common API here
---	--'common.lua',
---	-- TODO put entity-specific API here
---	--'entity.lua',
---	--TODO put player-specific API here
---	--'player.lua',
---}
+
+-- Store originals to prevent infinite recursion in overrides
+ia_fake_player.engine_get_connected_players = minetest.get_connected_players
+ia_fake_player.engine_get_player_by_name = minetest.get_player_by_name
+ia_fake_player.engine_check_player_privs = minetest.check_player_privs
+ia_fake_player.engine_get_player_information = minetest.get_player_information
+
 local modpath, S                 = ia_util.loadmod(modname)
 local log                        = ia_util.get_logger(modname)
 local assert                     = ia_util.get_assert(modname)
 
--- adapted from `feed_buckets`
+-----------------------------------------------------------
+-- 1. Engine API Monkeypatching (Overrides)
+-----------------------------------------------------------
 
--- fake player
-function ia_fake_player:get_pos()
-  return self.object:get_pos()
-end
-function ia_fake_player:set_pos(vel)
-  return self.object:set_pos(vel)
-end
-function ia_fake_player:get_velocity()
-  return self.object:get_velocity()
-end
-function ia_fake_player:add_velocity(vel)
-  return self.object:add_velocity(vel)
+-- Redirects to logic in names.lua which merges engine and fake players
+minetest.get_connected_players = function()
+    return ia_fake_player.get_all_actors()
 end
 
-function ia_fake_player:move_to(...)
-  return self.object:move_to(...)
-end
-function ia_fake_player:punch(...)
-  return self.object:punch(...)
-end
-function ia_fake_player:right_click(clicker)
-  return self.object:right_click(clicker)
+-- Checks engine first, then checks the naming registry
+minetest.get_player_by_name = function(name)
+    assert(type(name) == "string", "minetest.get_player_by_name: name must be a string")
+    return ia_fake_player.get_actor_by_name(name)
 end
 
-function ia_fake_player:get_wield_list()
-  return self.object:get_wield_list()
+-- Routes to privilege logic in names.lua
+minetest.check_player_privs = function(name, privs)
+    return ia_fake_player.check_actor_privs(name, privs)
 end
-function ia_fake_player:get_wield_index()
-  return self.object:get_wield_index()
+core.check_player_privs = minetest.check_player_privs
+
+--- Overwrite the engine function to support fake players
+minetest.get_player_information = function(name)
+    return ia_fake_player.get_actor_information(name)
 end
 
-function ia_fake_player:get_armor_groups()
-  return self.object:get_armor_groups()
-end
-function ia_fake_player:set_armor_groups(groups)
-  return self.object:set_armor_groups(groups)
+-----------------------------------------------------------
+-- 2. Event Emulation (The "Online" Illusion)
+-----------------------------------------------------------
+
+--- Triggers virtual join events for a fake player
+-- This ensures mods like hunger_ng initialize metadata for the actor.
+function ia_fake_player.trigger_join(actor)
+    -- Resolve the bridged interface to avoid "bad self" when calling engine methods
+    local player = ia_fake_player.get_interface(actor)
+    assert(player and player.get_player_name, "trigger_join: Invalid actor or interface")
+    
+    local name = player:get_player_name()
+
+    -- Ensure the actor is retrievable by name BEFORE triggering callbacks
+    -- so that on_joinplayer functions can find the "player" object.
+    -- (This is handled by the naming registry in names.lua)
+
+    for _, callback in ipairs(minetest.registered_on_joinplayers) do
+        callback(player)
+    end
 end
 
-function ia_fake_player:get_animation()
-  return self.object:get_animation()
-end
-function ia_fake_player:set_animation(...)
-  return self.object:set_animation(...)
+--- Triggers virtual leave events and performs cleanup
+function ia_fake_player.trigger_leave(actor, timeout)
+    local player = ia_fake_player.get_interface(actor)
+    assert(player and player.get_player_name, "trigger_leave: Invalid actor or interface")
+    
+    local name = player:get_player_name()
+
+    for _, callback in ipairs(minetest.registered_on_leaveplayers) do
+        callback(player, timeout or false)
+    end
+
+    -- Cleanup the naming registry and mirrors
+    ia_fake_player.release_name(name)
+    ia_fake_player.cleanup_entity(player)
 end
 
-function ia_fake_player:set_animation_frame_speed(frame_speed)
-  return self.object:set_animation_frame_speed(frame_speed)
-end
-function ia_fake_player:get_attach()
-  return self.object:get_attach()
-end
-function ia_fake_player:set_attach(...)
-  return self.object:set_attach(...)
-end
-function ia_fake_player:get_children()
-  return self.object:get_children()
-end
-function ia_fake_player:set_detach()
-  return self.object:set_detach()
+--- Emulates a player being punched (triggers registered_on_punchplayers)
+function ia_fake_player.trigger_punch(actor, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+    local player = ia_fake_player.get_interface(actor)
+    assert(player and player.get_player_name, "trigger_punch: Invalid actor or interface")
+
+    for _, callback in ipairs(minetest.registered_on_punchplayers) do
+        local result = callback(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+        if result == true then return true end
+    end
+    return false
 end
 
-function ia_fake_player:get_bone_position()
-  return self.object:get_bone_position()
-end
-function ia_fake_player:set_bone_position(...)
-  return self.object:set_bone_position(...)
+--- Emulates a player right-clicking (triggers registered_on_rightclickplayers)
+function ia_fake_player.trigger_rightclick(actor, clicker)
+    local player = ia_fake_player.get_interface(actor)
+    assert(player and player.get_player_name, "trigger_rightclick: Invalid actor or interface")
+
+    for _, callback in ipairs(minetest.registered_on_rightclickplayers) do
+        callback(player, clicker)
+    end
 end
 
-function ia_fake_player:set_properties(vel)
-  return self.object:set_properties(vel)
-end
+-----------------------------------------------------------
+-- 3. Global Lifecycle Mirroring
+-----------------------------------------------------------
 
-function ia_fake_player:get_nametag_attributes()
-  return self.object:get_nametag_attributes()
-end
-function ia_fake_player:set_nametag_attributes(vel)
-  return self.object:set_nametag_attributes(vel)
-end
-
--- lua entity
-function ia_fake_player:remove()
-  return self.object:remove()
-end
-
-function ia_fake_player:set_velocity(vel)
-  return self.object:set_velocity(vel)
-end
-
-function ia_fake_player:get_acceleration()
-  return self.object:get_acceleration()
-end
-function ia_fake_player:set_acceleration(acc)
-  return self.object:set_acceleration(acc)
-end
-
-function ia_fake_player:get_rotation()
-  return self.object:get_rotation()
-end
-function ia_fake_player:set_rotation(rot)
-  return self.object:set_rotation(rot)
-end
-
-function ia_fake_player:get_yaw()
-  return self.object:get_yaw()
-end
-function ia_fake_player:set_yaw(yaw)
-  return self.object:set_yaw(yaw)
-end
-
-function ia_fake_player:get_texture_mod()
-  return self.object:get_texture_mod()
-end
-function ia_fake_player:set_texture_mod(mod)
-  return self.object:set_texture_mod(mod)
-end
-
-function ia_fake_player:set_sprite(...)
-  return self.object:set_sprite(...)
-end
-
-function ia_fake_player:get_luaentity()
-  return self.object:get_luaentity()
-end
-
--- player specific
-
-function ia_fake_player:get_look_dir()
-  return self.object:get_look_dir()
-end
-function ia_fake_player:get_look_vertical()
-  return self.object:get_look_vertical()
-end
-function ia_fake_player:set_look_vertical(radians)
-  return self.object:set_look_vertical(radians)
-end
-function ia_fake_player:get_look_horizontal()
-  return self.object:get_look_horizontal()
-end
-function ia_fake_player:set_look_horizontal(radians)
-  return self.object:set_look_horizontal(radians)
-end
-
-function ia_fake_player:get_breath()
-  return self.object:get_breath()
-end
-function ia_fake_player:set_breath(value)
-  return self.object:set_breath(value)
-end
-
-function ia_fake_player:get_fov()
-  return self.object:get_fov()
-end
-function ia_fake_player:set_fov(fov, is_multiplier, transition_time)
-  return self.object:set_fov(fov, is_multiplier, transition_time)
-end
-
-function ia_fake_player:get_meta()
-  return self.object:get_meta()
-end
-
-function ia_fake_player:get_inventory_formspec()
-  return self.object:get_inventory_formspec()
-end
-function ia_fake_player:set_inventory_formspec(formspec)
-  return self.object:set_inventory_formspec(formspec)
-end
---function ia_fake_player:get_inventory()
---  return self.object:get_inventory()
---end
-
-function ia_fake_player:get_formspec_prepend(formspec)
-  return self.object:get_formspec_prepend(formspec)
-end
-function ia_fake_player:set_formspec_prepend(formspec)
-  return self.object:set_formspec_prepend(formspec)
-end
-
-function ia_fake_player:get_player_control()
-  return self.object:get_player_control()
-end
-function ia_fake_player:get_player_control_bits()
-  return self.object:get_player_control_bits()
-end
-
-function ia_fake_player:get_physics_override()
-  return self.object:get_physics_override()
-end
-function ia_fake_player:set_physics_override(override_table)
-  return self.object:set_physics_override(override_table)
-end
-
-function ia_fake_player:hud_add(hud_definition)
-  return self.object:hud_add(hud_definition)
-end
-function ia_fake_player:hud_remove(id)
-  return self.object:hud_remove(id)
-end
-function ia_fake_player:hud_change(id, stat, value)
-  return self.object:hud_change(id, stat, value)
-end
-function ia_fake_player:hud_get(id)
-  return self.object:hud_get(id)
-end
-
-function ia_fake_player:hud_get_flags()
-  return self.object:hud_get_flags()
-end
-function ia_fake_player:hud_set_flags(flags)
-  return self.object:hud_set_flags(flags)
-end
-
-function ia_fake_player:hud_get_hotbar_itemcount()
-  return self.object:hud_get_hotbar_itemcount()
-end
-function ia_fake_player:hud_set_hotbar_itemcount(count)
-  return self.object:hud_set_hotbar_itemcount(count)
-end
-
-function ia_fake_player:hud_get_hotbar_image()
-  return self.object:hud_get_hotbar_image()
-end
-function ia_fake_player:hud_set_hotbar_image(texturename)
-  return self.object:hud_set_hotbar_image(texturename)
-end
-
-function ia_fake_player:hud_get_hotbar_selected_image()
-  return self.object:hud_get_hotbar_selected_image()
-end
-function ia_fake_player:hud_set_hotbar_selected_image(texturename)
-  return self.object:hud_set_hotbar_selected_image(texturename)
-end
-
-function ia_fake_player:set_minimap_modes(modes, selected_mode)
-  return self.object:set_minimap_modes(modes, selected_mode)
-end
-
-function ia_fake_player:get_sky()
-  return self.object:get_sky()
-end
-function ia_fake_player:set_sky(sky_parameters)
-  return self.object:set_sky(sky_parameters)
-end
-function ia_fake_player:get_sky_color()
-  return self.object:get_sky_color()
-end
-
-function ia_fake_player:get_sun()
-  return self.object:get_sun()
-end
-function ia_fake_player:set_sun(sun_parameters)
-  return self.object:set_sun(sun_parameters)
-end
-
-function ia_fake_player:get_moon()
-  return self.object:get_moon()
-end
-function ia_fake_player:set_moon(moon_parameters)
-  return self.object:set_moon(moon_parameters)
-end
-
-function ia_fake_player:get_stars()
-  return self.object:get_stars()
-end
-function ia_fake_player:set_stars(stars_parameters)
-  return self.object:set_stars(stars_parameters)
-end
-
-function ia_fake_player:get_clouds()
-  return self.object:get_clouds()
-end
-function ia_fake_player:set_clouds(clouds_parameters)
-  return self.object:set_clouds(clouds_parameters)
-end
-
-function ia_fake_player:get_day_night_ratio()
-  return self.object:get_day_night_ratio()
-end
-function ia_fake_player:override_day_night_ratio(ratio)
-  return self.object:override_day_night_ratio(ratio)
-end
-
-function ia_fake_player:get_local_animation()
-  return self.object:get_local_animation()
-end
-function ia_fake_player:set_local_animation(...)
-  return self.object:set_local_animation(...)
-end
-
-function ia_fake_player:get_eye_offset()
-  return self.object:get_eye_offset()
-end
-function ia_fake_player:set_eye_offset(...)
-  return self.object:set_eye_offset(...)
-end
-
-function ia_fake_player:send_mapblock(blockpos)
-  return self.object:send_mapblock(blockpos)
-end
-
-function ia_fake_player.new(obj)
-    return setmetatable({object = obj}, {__index = ia_fake_player})
-end
+-- Global step hook for mods that track player-specific periodic logic
+minetest.register_globalstep(function(dtime)
+    local mobs = ia_fake_player.get_connected_mobs()
+    if #mobs == 0 then return end
+    
+    for _, mob in ipairs(mobs) do
+        -- Ensure we have the bridged interface for the global step
+        local player = ia_fake_player.get_interface(mob)
+        if player then
+            -- Logic: Ensure inventory mirrors stay semi-synced
+	    -- FIXME semi-synced? I'm gonna tell people that google gemini said that this handles all possible edge cases
+            local inv = player:get_inventory()
+            local detached_name = player.data and player.data.detached_name
+            if inv and detached_name then
+                 -- Optimization: only sync "main" on global step
+                 ia_fake_player:sync_to_detached(inv, detached_name, "main")
+            end
+        end
+    end
+end)

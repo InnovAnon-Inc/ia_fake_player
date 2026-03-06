@@ -1,0 +1,8 @@
+AsyncErr: Lua: Runtime error from mod 'ia_mob' in callback luaentity_Activate(): /usr/share/luanti/builtin/game/auth.lua:123: assertion failed!
+stack traceback:
+	[C]: in function 'assert'
+	/usr/share/luanti/builtin/game/auth.lua:123: in function 'record_login'
+	/usr/share/luanti/builtin/game/auth.lua:205: in function 'callback'
+	...ick/.minetest/mods/ia_human_meta/ia_fake_player/init.lua:97: in function 'trigger_join'
+	...etest/mods/ia_human_meta/ia_fake_player/registration.lua:197: in function 'init_actor'
+	...etest/mods/ia_human_meta/ia_fake_player/registration.lua:244: in function <...etest/mods/ia_human_meta/ia_fake_player/registration.lua:243>
