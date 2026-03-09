@@ -1,4 +1,7 @@
 ---- ia_fake_player/init.lua
+-- FIXME weird texture/mesh glitch
+-- FIXME mapblocks need to stay loaded
+-- TODO ensure that all fake players leave when the server shuts down
 ---- adapted from `feed_buckets`
 --
 --assert(minetest.get_modpath('ia_util'))

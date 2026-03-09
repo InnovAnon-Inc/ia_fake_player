@@ -3,27 +3,27 @@
 
 local log = ia_util.get_logger(minetest.get_current_modname())
 local assert = ia_util.get_assert(minetest.get_current_modname())
-local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
+local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81 -- TODO ia_space
 
 ---------------------------
 -- 1. Internal Helpers
 ---------------------------
 
 -- Synchronizes the detached armor inventory back to the fake player's local inventory
-local function sync_armor_inventory(actor)
-    local name = actor:get_player_name()
-    local det_inv = minetest.get_inventory({type="detached", name=name.."_armor"})
-    local actor_inv = actor:get_inventory()
-
-    if det_inv and actor_inv then
-        local sz = det_inv:get_size("armor")
-        actor_inv:set_size("armor", sz)
-        for i = 1, sz do
-            local stack = det_inv:get_stack("armor", i)
-            actor_inv:set_stack("armor", i, stack)
-        end
-    end
-end
+--local function sync_armor_inventory(actor)
+--    local name = actor:get_player_name()
+--    local det_inv = minetest.get_inventory({type="detached", name=name.."_armor"})
+--    local actor_inv = actor:get_inventory()
+--
+--    if det_inv and actor_inv then
+--        local sz = det_inv:get_size("armor")
+--        actor_inv:set_size("armor", sz)
+--        for i = 1, sz do
+--            local stack = det_inv:get_stack("armor", i)
+--            actor_inv:set_stack("armor", i, stack)
+--        end
+--    end
+--end
 
 -- Safely bridges the entity object to the fake_player proxy
 local function apply_actor_bridge(self)
@@ -197,7 +197,7 @@ function ia_fake_player.init_actor(self, staticdata)
     ia_fake_player.trigger_join(self)
 
     -- F. Post-Join Syncs
-    if armor then sync_armor_inventory(self) end
+--    if armor then sync_armor_inventory(self) end -- NOTE bug fixed: no longer necessary
     self.object:set_acceleration({x = 0, y = -gravity, z = 0})
 end
 
