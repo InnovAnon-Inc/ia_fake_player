@@ -1,4 +1,4 @@
--- ia_dunce/recipes.lua
+-- ia_fake_player/actions/recipes.lua
 
 --local recipes = {}
 
@@ -7,8 +7,8 @@
 -- @param list_name The inventory list to target (e.g., "craft" or "rec").
 -- @param put_func The function that validates if the Dunce has the item.
 -- @return table A list of operations for manipulate_appliance.
-function ia_dunce.build_crafting_ops(recipe_grid, list_name, put_func)
-	minetest.log('ia_dunce.crafting_ops()')
+function ia_fake_player.actions.build_crafting_ops(recipe_grid, list_name, put_func)
+	minetest.log('ia_fake_player.actions.crafting_ops()')
     local ops = {}
     
     -- We use ipairs to ensure we follow the table order exactly.
@@ -38,9 +38,9 @@ function ia_dunce.build_crafting_ops(recipe_grid, list_name, put_func)
 end
 
 --- Specialized helper for the "Crafting Bench" style mods (Put -> Wait -> Take).
-function ia_dunce.build_complex_craft_sequence(self, pos, recipe, config)
-	minetest.log('ia_dunce.build_complex_craft_sequence()')
-    local ops = ia_dunce.build_crafting_ops(recipe, config.grid_list, config.put_logic)
+function ia_fake_player.actions.build_complex_craft_sequence(self, pos, recipe, config)
+	minetest.log('ia_fake_player.actions.build_complex_craft_sequence()')
+    local ops = ia_fake_player.actions.build_crafting_ops(recipe, config.grid_list, config.put_logic)
     
     -- Add the 'Processing' steps
     table.insert(ops, { noop = config.duration or 20 })

@@ -1,11 +1,11 @@
--- ia_dunce/is_stuck.lua
+-- ia_fake_player/actions/is_stuck.lua
 
-function ia_dunce.is_stuck(self)
-    local my_pos = self.object:get_pos()
+function ia_fake_player.actions.is_stuck(self)
+    local my_pos = self:get_pos()
     if not my_pos or not self._last_pos then return false end
 
     -- Only check for being stuck if the mob is actually trying to walk/move
-    local v = self.object:get_velocity()
+    local v = self:get_velocity()
     local horizontal_vel = vector.length({x = v.x, y = 0, z = v.z})
 
     if horizontal_vel > 0.1 then

@@ -181,11 +181,15 @@ end
 --- Triggers virtual join events for a fake player
 -- This ensures mods like hunger_ng initialize metadata for the actor.
 function ia_fake_player.trigger_join(actor)
+    assert(actor ~= nil)
     -- Resolve the bridged interface to avoid "bad self" when calling engine methods
     local player = ia_fake_player.get_interface(actor)
-    assert(player and player.get_player_name, "trigger_join: Invalid actor or interface")
+    assert(player)
+    assert(player.get_player_name, "trigger_join: Invalid actor or interface")
     
     local name = player:get_player_name()
+    assert(name ~= nil)
+    assert(name == actor.mob_name)
 
     -- Ensure the actor is retrievable by name BEFORE triggering callbacks
     -- so that on_joinplayer functions can find the "player" object.
@@ -238,22 +242,68 @@ end
 -- 3. Global Lifecycle Mirroring
 -----------------------------------------------------------
 
--- Global step hook for mods that track player-specific periodic logic
+---- Global step hook for mods that track player-specific periodic logic
+--minetest.register_globalstep(function(dtime)
+--    local mobs = ia_fake_player.get_connected_mobs()
+--    if #mobs == 0 then return end
+--    
+--    for _, mob in ipairs(mobs) do
+--        -- Ensure we have the bridged interface for the global step
+--        local player = ia_fake_player.get_interface(mob)
+--        if player then
+--            -- Logic: Ensure inventory mirrors stay semi-synced
+--	    -- FIXME semi-synced? I'm gonna tell people that google gemini said that this handles all possible edge cases
+--            local inv = player:get_inventory()
+--            local detached_name = player.data and player.data.detached_name -- TODO skip armor ?
+--            if inv and detached_name then
+--                 -- Optimization: only sync "main" on global step
+--                 ia_fake_player:sync_to_detached(inv, detached_name, "main")
+--            end
+--        end
+--    end
+--end)
+-- File: testing.lua (or where your globalstep resides)
+
 minetest.register_globalstep(function(dtime)
     local mobs = ia_fake_player.get_connected_mobs()
     if #mobs == 0 then return end
-    
+
     for _, mob in ipairs(mobs) do
-        -- Ensure we have the bridged interface for the global step
         local player = ia_fake_player.get_interface(mob)
+        
+        -- Ensure we have a valid bridged interface
         if player then
-            -- Logic: Ensure inventory mirrors stay semi-synced
-	    -- FIXME semi-synced? I'm gonna tell people that google gemini said that this handles all possible edge cases
             local inv = player:get_inventory()
-            local detached_name = player.data and player.data.detached_name
+            local data = player.data
+            local detached_name = data and data.detached_name
+
             if inv and detached_name then
-                 -- Optimization: only sync "main" on global step
-                 ia_fake_player:sync_to_detached(inv, detached_name, "main")
+                -- Get all lists currently defined in the fake inventory
+                local lists = inv:get_lists()
+                
+                for listname, _ in pairs(lists) do
+                    -- Skip "armor" as it's typically handled by 3d_armor's own mirrors
+                    if listname ~= "armor" then
+                        -- Check if the detached inventory actually has this list
+                        local detached_inv = minetest.get_inventory({type="detached", name=detached_name})
+                        
+                        if detached_inv then
+                            -- If the detached mirror is missing a list the fake player has, create it
+                            if detached_inv:get_size(listname) == 0 and inv:get_size(listname) > 0 then
+                                minetest.log("action", "[ia_fake_player] Auto-creating missing detached list: " 
+                                    .. listname .. " for " .. detached_name)
+                                detached_inv:set_size(listname, inv:get_size(listname))
+                            end
+
+                            -- Sync the list
+                            ia_fake_player:sync_to_detached(inv, detached_name, listname)
+                        else
+                            -- Logging if the mirror disappeared unexpectedly
+                            minetest.log("error", "[ia_fake_player] Globalstep: Detached inventory " 
+                                .. tostring(detached_name) .. " is missing!")
+                        end
+                    end
+                end
             end
         end
     end
