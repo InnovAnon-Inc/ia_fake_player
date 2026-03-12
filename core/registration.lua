@@ -160,9 +160,20 @@ function ia_fake_player.register_actor(name, definition)
     -- Injected Combat (3d_armor)
     local user_on_punch = definition.on_punch
     final_def.on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-        if armor and armor.punch then
+	assert(minetest.get_modpath('3d_armor'))
+	assert(armor)
+	assert(armor.punch)
+	minetest.log('puncher: '..puncher:get_player_name())
+        --if armor and armor.punch then
             armor:punch(self, puncher, time_from_last_punch, tool_capabilities)
-        end
+        --end
+	-- "IMPORTANT: If armor mod is NOT present, we need a fallback so mobs still take damage" (google gemini)
+	--if not (armor and armor.punch) then
+        --    -- Standard damage calculation only if armor isn't handling it
+        --    local armor_groups = self.object:get_armor_groups()
+        --    local result = minetest.get_damage_groups(tool_capabilities.damage_groups, armor_groups)
+        --    self:set_hp(self:get_hp() - result, {type = "punch", object = puncher})
+        --end
         if user_on_punch then
             user_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
         end

@@ -40,7 +40,8 @@ function ia_fake_player.handle_breathing_and_drowning(self, dtime)
             else
                 local damage = def.drowning or 1
                 -- set_hp triggers armor/death logic
-                self:set_hp(self:get_hp() - damage)
+                --self:set_hp(self:get_hp() - damage)
+                self:set_hp(self:get_hp() - damage, {type='drown'})
             end
         end
     -- Breathing Logic (Every 0.5 seconds)
@@ -89,7 +90,8 @@ function ia_fake_player.handle_falling_damage(self, dtime)
                 --log("action", string.format("%s took %d fall damage (impact: %.2f)",
                 --    name, damage, impact_speed)) -- 2026-03-05 17:27:36: ERROR[Main]: /home/frederick/.minetest/mods/ia_util/init.lua:22: /home/frederick/.minetest/mods/ia_util/logging.lua:40: attempt to compare number with string
 
-                self:set_hp(self:get_hp() - damage)
+                --self:set_hp(self:get_hp() - damage)
+                self:set_hp(self:get_hp() - damage, {type='fall'})
 
                 minetest.sound_play("default_hard_footstep", {
                     pos = pos,
@@ -142,7 +144,8 @@ function ia_fake_player.handle_node_damage(self, dtime)
         end
 
         if max_damage > 0 then
-            self:set_hp(self:get_hp() - max_damage)
+            --self:set_hp(self:get_hp() - max_damage)
+            self:set_hp(self:get_hp() - max_damage, {type='node_damage'})
             
             -- Lava sizzle sound for high damage
             if max_damage > 3 then

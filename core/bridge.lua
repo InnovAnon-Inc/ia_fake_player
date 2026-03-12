@@ -133,6 +133,24 @@ function ia_fake_player.bridge_object(object, entity, proxy)
     }
 
     setmetatable(entity, mt)
+
+--local old_set_hp = entity.set_hp
+--assert(old_set_hp)
+--entity.set_hp = function(self, value, reason)
+--    assert(self   ~= nil)
+--    assert(value  ~= nil)
+--    assert(reason ~= nil)
+--    -- 1. Calculate the delta before updating the state
+--    local old_hp = self:get_hp() --or 20
+--    old_set_hp(self, value, reason)
+--    local new_hp = self:get_hp()
+--    --if (new_hp >= old_hp) then return end
+--    --if (new_hp == old_hp) then return end
+--    local d_hp   = (new_hp - old_hp)
+--    --assert(d_hp < 0)
+--    --assert(d_hp == 0)
+--    ia_fake_player.on_playerhp_change(self, d_hp, reason) -- TODO
+--end
 end
 
 ---------------------------
@@ -193,3 +211,52 @@ function ia_fake_player.get_interface(obj)
     
     return nil
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--function ia_fake_player.on_playerhp_change(self, d_hp, reason)
+--    local player = ia_fake_player.get_interface(self)
+--    assert(player)
+--    --if not player then return end
+--
+--    -- Only notify the ketchup script and other ia_ listeners
+--    -- We use our own custom callback system to avoid clashing with the engine's protected tables
+--    --if ia_fake_player.registered_on_hp_change then
+--        for _, callback in ipairs(ia_fake_player.registered_on_hp_change) do
+--            callback(player, d_hp, reason)
+--        end
+--    --end
+--end

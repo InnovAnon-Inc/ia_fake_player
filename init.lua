@@ -143,6 +143,7 @@ ia_fake_player.engine_get_connected_players = minetest.get_connected_players
 ia_fake_player.engine_get_player_by_name = minetest.get_player_by_name
 ia_fake_player.engine_check_player_privs = minetest.check_player_privs
 ia_fake_player.engine_get_player_information = minetest.get_player_information
+-- ia_fake_player.engine_on_player_hp_change -- TODO
 
 local modpath, S                 = ia_util.loadmod(modname)
 local log                        = ia_util.get_logger(modname)
