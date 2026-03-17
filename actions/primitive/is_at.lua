@@ -1,6 +1,6 @@
--- ia_fake_player/actions/is_at.lua
+-- ia_fake_player/actions/primitive/is_at.lua
 
-function ia_fake_player.actions.is_at(self, pos, threshold)
+function ia_fake_player.actions.primitive.is_at(self, pos, threshold)
 	--minetest.log('ia_fake_player.actions.is_at()')
     local my_pos = self:get_pos()
     if not my_pos or not pos then return false end

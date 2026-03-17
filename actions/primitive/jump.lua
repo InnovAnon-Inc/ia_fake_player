@@ -39,3 +39,19 @@ function ia_fake_player.actions.primitive.jump(self)
     
     return false
 end
+
+function ia_fake_player.actions.primitive.panic_jump(self, reason)
+    core.log("action", self.mob_name .. " is panicking! Reason: " .. tostring(reason))
+
+    -- Randomize yaw to try and move in a new direction
+    local random_yaw = math.random() * math.pi * 2
+    self.object:set_yaw(random_yaw)
+
+    -- Primitive Jump (Vertical velocity)
+    local v = self.object:get_velocity()
+    self.object:set_velocity({
+        x = math.sin(-random_yaw) * 3, -- Lunge forward slightly
+        y = 6,                         -- Jump height
+        z = math.cos(random_yaw) * 3
+    })
+end

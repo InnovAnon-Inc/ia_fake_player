@@ -1,6 +1,6 @@
--- ia_fake_player/actions/is_stuck.lua
+-- ia_fake_player/actions/primitive/is_stuck.lua
 
-function ia_fake_player.actions.is_stuck(self)
+function ia_fake_player.actions.primitive.is_stuck(self)
     local my_pos = self:get_pos()
     if not my_pos or not self._last_pos then return false end
 

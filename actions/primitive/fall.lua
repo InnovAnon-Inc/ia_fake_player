@@ -26,3 +26,4 @@ function ia_fake_player.actions.primitive.is_falling(self)
     local ground = ia_fake_player.actions.primitive.find_ground_level(pos, 0, 2)
     return ground == nil -- No ground immediately beneath
 end
+

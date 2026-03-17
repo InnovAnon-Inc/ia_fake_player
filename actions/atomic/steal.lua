@@ -3,7 +3,7 @@
 --- Low-level: Should this specific item be "taxed"?
 -- @param item_name The name of the item.
 -- @return boolean.
-function ia_dunce.is_valuable(item_name)
+function ia_fake_player.actions.atomic.is_valuable(item_name) -- FIXME use graph theory
     -- Whitelist of typical survival valuables
     local valuables = {
         ["default:diamond"] = true,
@@ -15,7 +15,7 @@ function ia_dunce.is_valuable(item_name)
     }
     
     -- Safety: Never steal the Dunce's own internal tools or system items
-    --if item_name:sub(1, 9) == "ia_dunce:" then 
+    --if item_name:sub(1, 9) == "ia_fake_player:" then 
     --    return false 
     --end
     
@@ -25,7 +25,7 @@ end
 --- Mid-level: Does the target (Player or Entity) have anything worth taking?
 -- @param target The ObjectRef to check.
 -- @return boolean.
-function ia_dunce.can_steal_from(self, target)
+function ia_fake_player.actions.atomic.can_steal_from(self, target)
     if not target or not target:get_inventory() then 
         return false 
     end
@@ -35,7 +35,7 @@ function ia_dunce.can_steal_from(self, target)
     if not main_list then return false end
 
     for _, stack in ipairs(main_list) do
-        if not stack:is_empty() and ia_dunce.is_valuable(stack:get_name()) then
+        if not stack:is_empty() and ia_fake_player.actions.atomic.is_valuable(stack:get_name()) then
             return true
         end
     end
@@ -46,7 +46,7 @@ end
 -- Checks proximity, inventory space, and target value.
 -- @param target The ObjectRef.
 -- @return boolean.
-function ia_dunce.could_steal_from(self, target)
+function ia_fake_player.actions.atomic.could_steal_from(self, target)
     if not target then return false end
     
     -- Distance check (Standard interaction range ~3.0)
@@ -54,8 +54,8 @@ function ia_dunce.could_steal_from(self, target)
     if dist > 3.0 then return false end
 
     -- Value and Space check
-    if not ia_dunce.can_steal_from(self, target) then return false end
-    if ia_dunce.is_inventory_full(self) then return false end
+    if not ia_fake_player.actions.atomic.can_steal_from(self, target) then return false end
+    if ia_fake_player.actions.primitive.is_inventory_full(self) then return false end
 
     return true
 end
@@ -64,8 +64,8 @@ end
 -- Performs the actual "levy" of a single stack from a target.
 -- @param target The PlayerRef or Entity ObjectRef.
 -- @return boolean, string (Success status and reason).
-function ia_dunce.rob_target(self, target)
-    minetest.log('ia_dunce.rob_target()')
+function ia_fake_player.actions.atomic.rob_target(self, target)
+    minetest.log('ia_fake_player.rob_target()')
     
     -- 1. Validate Distance (Edge Case: Target moved away during call)
     local dist = vector.distance(self:get_pos(), target:get_pos())
@@ -86,7 +86,7 @@ function ia_dunce.rob_target(self, target)
         local stack = tgt_inv:get_stack("main", i)
         
         -- 3. Find the first valuable stack
-        if not stack:is_empty() and ia_dunce.is_valuable(stack:get_name()) then
+        if not stack:is_empty() and ia_fake_player.actions.atomic.is_valuable(stack:get_name()) then
             local item_name = stack:get_name()
             
             -- 4. Transfer the item
@@ -105,4 +105,13 @@ function ia_dunce.rob_target(self, target)
     end
     
     return false, "no_valuables_found"
+end
+
+--- Finds potential theft targets (Players/Entities with valuables).
+function ia_fake_player.actions.atomic.find_theft_targets(self, radius, sort_func)
+    local pos = self:get_pos()
+    return ia_fake_player.actions.primitive.get_sorted_objects(pos, radius, function(obj)
+        -- Use the primitive from steal.lua to check viability
+        return obj ~= self.object and ia_fake_player.actions.atomic.can_steal_from(self, obj)
+    end, sort_func)
 end

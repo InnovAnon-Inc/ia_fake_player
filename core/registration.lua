@@ -57,7 +57,9 @@ function ia_fake_player.init_actor(self, staticdata)
     local data = minetest.deserialize(staticdata) or {}
 
     -- A. Identity
-    self.gender = data.gender or (ia_gender and ia_gender.generate_human_gender()) or "male"
+    assert(core.get_modpath('ia_gender'))
+    self.gender = data.gender or ia_gender.generate_human_gender()
+    assert(self.gender)
     self.mob_name = data.mob_name or ia_fake_player.generate_random_name(self.gender)
     minetest.log('ia_fake_player.init_actor() mob_name='..tostring(self.mob_name))
 
@@ -137,9 +139,15 @@ function ia_fake_player.register_actor(name, definition)
         -- [REMOVED] redundant register_active call
        
         local data = minetest.deserialize(staticdata) or {} -- NOTE testing (mapblock)
-	--if data.persistent then -- NOTE testing (mapblock; optional) -- TODO need a way to enable/disable this... globally? per-mob? idc. do something easy
+
+	if data then
+		self.persistent  = ((data.persistent ~= nil and data.persistent) or true)
+		self.personality = data.personality
+	end
+
+	if data.persistent then -- NOTE testing (mapblock; optional) -- TODO need a way to enable/disable this... globally? per-mob? idc. do something easy
 	    ia_fake_player.set_persistence(self, true)
-	--end
+	end
 
         if user_on_activate then
             user_on_activate(self, staticdata, dtime_s)
@@ -148,12 +156,13 @@ function ia_fake_player.register_actor(name, definition)
 
     -- Injected Persistence
     final_def.get_staticdata = function(self)
-        local state = ia_fake_player.get_state(self)
+        local state = ia_fake_player.get_state(self) -- player/object/luaentity state
         return minetest.serialize({
-            gender = self.gender,
-            mob_name = self.mob_name,
-            state = state,
-	    persistent = (self._forceload_handle ~= nil), -- NOTE testing (mapblock)
+            gender      = self.gender,
+            mob_name    = self.mob_name,
+            state       = state,
+	    persistent  = (self._forceload_handle ~= nil), -- NOTE testing (mapblock)
+	    personality = self.personality,
         })
     end
 
@@ -203,6 +212,8 @@ function ia_fake_player.register_actor(name, definition)
 
         if user_on_step then
             user_on_step(self, dtime)
+	else
+            ia_fake_player.on_step_default(self, dtime)
         end
     end
 

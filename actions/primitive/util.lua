@@ -1,7 +1,7 @@
 -- ia_fake_player/actions/util.lua
 
 -- Helper: Build a pointed_thing for a node target
-function ia_fake_player.actions.get_pointed_node(pos) -- TODO move to ia_util
+function ia_fake_player.actions.primitive.get_pointed_node(pos) -- TODO move to ia_util
     return {
         type = "node",
         under = pos,
@@ -24,7 +24,7 @@ end
 --end
 
 --- Returns a standard pointed_thing for node interactions.
-function ia_fake_player.actions.get_pointed_thing(pos, above_pos)
+function ia_fake_player.actions.primitive.get_pointed_thing(pos, above_pos)
     return {
         type = "node",
         under = pos,
@@ -48,7 +48,7 @@ end
 --end
 
 --- Range check with eye-height adjustment.
-function ia_fake_player.actions.is_within_reach(self, target_pos, range)
+function ia_fake_player.actions.primitive.is_within_reach(self, target_pos, range)
     local my_pos = self:get_pos()
     my_pos.y = my_pos.y + 1.5 -- Eye level
     return vector.distance(my_pos, target_pos) <= (range or 5)
@@ -151,7 +151,7 @@ end
 
 
 --- Gets the unit vector of where the Dunce is currently looking.
-function ia_fake_player.actions.get_look_vector(self)
+function ia_fake_player.actions.primitive.get_look_vector(self)
     local yaw = self:get_yaw()
     if not yaw then return {x = 0, y = 0, z = 0} end
     -- Convert yaw to a direction vector
@@ -211,7 +211,7 @@ end
 --- Checks if a target position is likely reachable (not buried or floating).
 -- @param pos The target position.
 -- @return boolean
-function ia_fake_player.actions.is_target_accessible(pos)
+function ia_fake_player.actions.primitive.is_target_accessible(pos)
     if not pos then return false end
 
     local node = minetest.get_node(pos)
@@ -225,7 +225,7 @@ function ia_fake_player.actions.is_target_accessible(pos)
 
     -- Edge Case: Is there air/space to stand at the target?
     local head_pos = {x = pos.x, y = pos.y + 1, z = pos.z}
-    if ia_fake_player.actions.get_node_properties(minetest.get_node(head_pos).name) then
+    if ia_fake_player.actions.primitive.get_node_properties(minetest.get_node(head_pos).name) then
         -- If head level is blocked by a non-walkable solid, it's a tight squeeze or buried.
         -- (Using your existing get_node_properties logic)
         return false
@@ -323,7 +323,7 @@ end
 
 
 --- Forces the Dunce to face a specific coordinate.
-function ia_fake_player.actions.face_pos(self, target_pos)
+function ia_fake_player.actions.primitive.face_pos(self, target_pos)
     local my_pos = self:get_pos()
     if not my_pos or not target_pos then return end
 
@@ -333,18 +333,18 @@ function ia_fake_player.actions.face_pos(self, target_pos)
 end
 
 --- Calculates a unit vector based on current yaw.
-function ia_fake_player.actions.get_dir(self)
+function ia_fake_player.actions.primitive.get_dir(self)
     local yaw = self:get_yaw()
     if not yaw then return {x = 0, y = 0, z = 0} end
     return minetest.yaw_to_dir(yaw)
 end
 
 --- Gets a node position relative to current facing.
-function ia_fake_player.actions.get_relative_node_pos(self, distance, height_offset)
+function ia_fake_player.actions.primitive.get_relative_node_pos(self, distance, height_offset)
     local my_pos = self:get_pos()
     if not my_pos then return nil end
 
-    local dir = ia_fake_player.actions.get_dir(self)
+    local dir = ia_fake_player.actions.primitive.get_dir(self)
     dir.y = 0 -- Keep calculations on the horizontal plane
 
     local offset = vector.multiply(vector.normalize(dir), distance or 1)
@@ -358,14 +358,14 @@ function ia_fake_player.actions.get_relative_node_pos(self, distance, height_off
 end
 
 --- Checks if a node can be replaced (air, grass, etc.)
-function ia_fake_player.actions.is_buildable(pos)
+function ia_fake_player.actions.primitive.is_buildable(pos)
     local node = minetest.get_node(pos)
     local def = minetest.registered_nodes[node.name]
     return def and def.buildable_to or false
 end
 
 --- Retrieves node walkability and actual collision height.
-function ia_fake_player.actions.get_node_properties(node_name)
+function ia_fake_player.actions.primitive.get_node_properties(node_name)
     local def = minetest.registered_nodes[node_name]
     if not def then return false, 0 end
     if not def.walkable then return false, 0 end
@@ -386,7 +386,7 @@ end
 
 --- Finds a solid surface by checking up and down from a point.
 -- Used by the pathfinder to allow jumping and falling.
-function ia_fake_player.actions.find_ground_level(pos, max_up, max_down)
+function ia_fake_player.actions.primitive.find_ground_level(pos, max_up, max_down)
     local p = vector.round(pos)
 
     for y = max_up, -max_down, -1 do
@@ -395,9 +395,9 @@ function ia_fake_player.actions.find_ground_level(pos, max_up, max_down)
         local node_above = minetest.get_node({x = check_pos.x, y = check_pos.y + 1, z = check_pos.z})
         local node_head  = minetest.get_node({x = check_pos.x, y = check_pos.y + 2, z = check_pos.z})
 
-        if ia_fake_player.actions.get_node_properties(node_under.name) and
-           ia_fake_player.actions.is_buildable(node_above) and
-           ia_fake_player.actions.is_buildable(node_head) then
+        if ia_fake_player.actions.primitive.get_node_properties(node_under.name) and
+           ia_fake_player.actions.primitive.is_buildable(node_above) and
+           ia_fake_player.actions.primitive.is_buildable(node_head) then
             return check_pos
         end
     end
@@ -405,7 +405,7 @@ function ia_fake_player.actions.find_ground_level(pos, max_up, max_down)
 end
 
 --- Determines if an entity is physically solid.
-function ia_fake_player.actions.is_obstructive(obj)
+function ia_fake_player.actions.primitive.is_obstructive(obj)
     if not obj or not obj:get_pos() then return false end
     if obj:is_player() then return true end
 
@@ -422,10 +422,10 @@ function ia_fake_player.actions.is_obstructive(obj)
 end
 
 --- Checks if a node is occupied by a stationary, solid obstacle.
-function ia_fake_player.actions.is_node_occupied(pos, ignore_self)
+function ia_fake_player.actions.primitive.is_node_occupied(pos, ignore_self)
     local objs = minetest.get_objects_inside_radius(pos, 0.5)
     for _, obj in ipairs(objs) do
-        if obj ~= ignore_self and ia_fake_player.actions.is_obstructive(obj) then
+        if obj ~= ignore_self and ia_fake_player.actions.primitive.is_obstructive(obj) then
             local v = obj:get_velocity()
             -- Stationary entities are A* obstacles; moving ones are side-stepped.
             if v and vector.length(v) < 0.1 then
@@ -437,7 +437,7 @@ function ia_fake_player.actions.is_node_occupied(pos, ignore_self)
 end
 
 --- Checks if a target object is still valid in the world.
-function ia_fake_player.actions.is_valid_object(obj)
+function ia_fake_player.actions.primitive.is_valid_object(obj)
     if not obj or type(obj) ~= "userdata" then return false end
     if not obj:get_pos() then return false end
 
@@ -448,7 +448,7 @@ function ia_fake_player.actions.is_valid_object(obj)
     return true
 end
 
-function ia_fake_player.actions.apply_vertical_impulse(self, power)
+function ia_fake_player.actions.primitive.apply_vertical_impulse(self, power)
     local v = self:get_velocity()
     if not v then return end
 
@@ -470,7 +470,7 @@ end
 
 --- Logic for determining if an object is a threat.
 -- This is a placeholder that can be expanded by mods using ia_fake_player.actions.
-function ia_fake_player.actions.is_hostile(self, object)
+function ia_fake_player.actions.primitive.is_hostile(self, object) -- TODO
     -- If it's a player, maybe they are hostile if holding a sword?
     if object:is_player() then
         local item = object:get_wielded_item():get_name()
@@ -490,7 +490,7 @@ end
 
 
 
-function ia_fake_player.actions.get_direction_from_param2(param2)
+function ia_fake_player.actions.primitive.get_direction_from_param2(param2)
     local dirs = {
         [0] = {x = 0, z = 1},   -- North
         [1] = {x = 1, z = 0},   -- East
@@ -500,7 +500,7 @@ function ia_fake_player.actions.get_direction_from_param2(param2)
     return dirs[param2 % 4]
 end
 --- Internal: Finds a safe spot next to the bed to stand up.
-function ia_fake_player.actions.find_safe_wakeup_pos(pos)
+function ia_fake_player.actions.primitive.find_safe_wakeup_pos(pos)
 	minetest.log('ia_fake_player.actions.find_safe_wakeup_pos()')
     -- Check 4 cardinal directions around the bed
     local neighbors = {
@@ -513,7 +513,7 @@ function ia_fake_player.actions.find_safe_wakeup_pos(pos)
         local head_node = minetest.get_node({x=check_pos.x, y=check_pos.y+1, z=check_pos.z})
 
         -- If the floor is walkable and there is air for the head/body
-        if ia_fake_player.actions.is_buildable(check_pos) and ia_fake_player.actions.is_buildable(head_node) then
+        if ia_fake_player.actions.primitive.is_buildable(check_pos) and ia_fake_player.actions.primitive.is_buildable(head_node) then
             return check_pos
         end
     end

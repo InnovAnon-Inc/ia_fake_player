@@ -30,7 +30,7 @@
 
 --- Mid-level: Does the agent have suitable armor in their inventory?
 function ia_fake_player.actions.atomic.can_armor(self, armor_type)
-    return ia_fake_player.actions.atomic.has_item(self, function(n)  --  TODO
+    return ia_fake_player.actions.primitive.has_item(self, function(n)  --  TODO
         return ia_fake_player.actions.atomic.is_armorable(n, armor_type) 
     end)
 end
@@ -45,7 +45,7 @@ function ia_fake_player.actions.atomic.could_armor(self, armor_type)
                 or armor_type == "torso" and "3d_armor:chestplate_wood"
                 or "3d_armor:chestplate_wood"
 
-    return ia_fake_player.actions.atomic.can_obtain_item(self, target) -- TODO
+    return ia_fake_player.actions.primitive.can_obtain_item(self, target) -- TODO
 end
 
 --- Level 1: Atomic Action
@@ -188,7 +188,7 @@ function ia_fake_player.actions.atomic.craft_and_equip_armor(self, armor_type)
     
     if not ia_fake_player.actions.atomic.can_armor(self, armor_type) then
         local target = armor_type == "torso" and "3d_armor:chestplate_wood" or "3d_armor:helmet_wood"
-        if ia_fake_player.actions.atomic.can_obtain_item(self, target) then -- TODO
+        if ia_fake_player.actions.primitive.can_obtain_item(self, target) then -- TODO
             ia_fake_player.actions.primitive.craft_item(self, target)
         end
     end
@@ -198,14 +198,14 @@ end
 
 --- High-level: Returns a table of armor requirements for missing slots.
 -- Useful for passing directly into handle_scavenging.
---function ia_dunce.get_armor_requirements(self)
+--function ia_fake_player.get_armor_requirements(self)
 --    local missing = {}
 --    -- Standard 3d_armor elements
 --    local elements = {"head", "torso", "legs", "feet"}
 --
 --    for _, element in ipairs(elements) do
---        -- Use the existing ia_dunce check
---        if not ia_dunce.is_armored(self, element) then
+--        -- Use the existing ia_fake_player check
+--        if not ia_fake_player.is_armored(self, element) then
 --            -- Requirements table format: { ["criteria"] = value }
 --            -- We look for any item in the specific armor group (e.g., group:head)
 --            missing["group:" .. element] = true
@@ -234,7 +234,7 @@ function ia_fake_player.actions.atomic.get_armor_requirements(self) -- primitive
     
     if found_missing then
         -- Logging the requirement table for debugging
-        --minetest.log("action", "[ia_dunce] Armor reqs for " .. self.mob_name .. ": " .. dump(missing))
+        --minetest.log("action", "[ia_fake_player] Armor reqs for " .. self.mob_name .. ": " .. dump(missing))
         return missing
     end
 

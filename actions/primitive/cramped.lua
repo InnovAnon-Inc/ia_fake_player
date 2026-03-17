@@ -1,8 +1,8 @@
--- ia_fake_player/actions/cramped.lua
+-- ia_fake_player/actions/primitive/cramped.lua
 
 --- Returns distances to nearest walkable obstacles in cardinal directions.
 -- @return table {forward, back, left, right}
-function ia_fake_player.actions.get_surrounding_clearance(self, max_dist)
+function ia_fake_player.actions.primitive.get_surrounding_clearance(self, max_dist)
     local pos = self:get_pos()
     if not pos then return {f = 0, b = 0, l = 0, r = 0} end
     
@@ -17,8 +17,8 @@ function ia_fake_player.actions.get_surrounding_clearance(self, max_dist)
             local node_f = minetest.get_node(check_pos)
             local node_h = minetest.get_node({x=check_pos.x, y=check_pos.y+1, z=check_pos.z})
             
-            local walk_f = ia_fake_player.actions.get_node_properties(node_f.name)
-            local walk_h = ia_fake_player.actions.get_node_properties(node_h.name)
+            local walk_f = ia_fake_player.actions.primitive.get_node_properties(node_f.name)
+            local walk_h = ia_fake_player.actions.primitive.get_node_properties(node_h.name)
             
             if walk_f or walk_h then return i - 1 end
         end
@@ -38,9 +38,9 @@ function ia_fake_player.actions.get_surrounding_clearance(self, max_dist)
 end
 
 --- Predicate: Is the mob in a cramped area (e.g., 1x2 tunnel)?
-function ia_fake_player.actions.is_tight_space(self)
-    local clearance = ia_fake_player.actions.get_surrounding_clearance(self, 2)
-    local headspace = ia_fake_player.actions.get_headspace(self, 3)
+function ia_fake_player.actions.primitive.is_tight_space(self)
+    local clearance = ia_fake_player.actions.primitive.get_surrounding_clearance(self, 2)
+    local headspace = ia_fake_player.actions.primitive.get_headspace(self, 3)
     
     -- If headspace is low AND opposite sides are close
     local narrow_x = (clearance.left + clearance.right) <= 1

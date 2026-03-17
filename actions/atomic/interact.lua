@@ -1,8 +1,8 @@
 -- ia_fake_player/actions/atomic/interact.lua
 
 ----- Dispatches the correct interaction based on the target type.
---function ia_dunce.perform_arrival_action(self, target)
---	minetest.log('ia_dunce.perform_arrival_action()')
+--function ia_fake_player.perform_arrival_action(self, target)
+--	minetest.log('ia_fake_player.perform_arrival_action()')
 --    if not target then return end
 --
 --    -- If target is a dropped item
@@ -13,7 +13,7 @@
 --
 --    -- If target is a node (like a chest or crafting bench)
 --    if target.type == "node" then
---        ia_dunce.interact_with_node(self, target.pos)
+--        ia_fake_player.interact_with_node(self, target.pos)
 --        return
 --    end
 --end
@@ -27,8 +27,8 @@
 
 
 --- Handles the actual collection and auto-equipping of an item. -- NOTE shadows in inventory
---function ia_dunce.pickup_item(self, item_obj)
---	minetest.log('ia_dunce.pickup_item()')
+--function ia_fake_player.pickup_item(self, item_obj)
+--	minetest.log('ia_fake_player.pickup_item()')
 --    local lua_ent = item_obj:get_luaentity()
 --    if not lua_ent or lua_ent.name ~= "__builtin:item" then return end
 --
@@ -48,8 +48,8 @@
 --end
 
 ----- Generic arrival dispatcher
---function ia_dunce.perform_arrival_action(self, target_data)
---	minetest.log('ia_dunce.perform_arrival_action()')
+--function ia_fake_player.perform_arrival_action(self, target_data)
+--	minetest.log('ia_fake_player.perform_arrival_action()')
 --    if not target_data then return end
 --
 --    if target_data.type == "item" and target_data.object:get_pos() then
@@ -62,17 +62,17 @@
 -- @param self The fake player object.
 -- @param pos Node position.
 -- @return boolean (Success status).
-function ia_dunce.mine_and_collect(self, pos)
-    minetest.log('ia_dunce.mine_and_collect()')
+function ia_fake_player.actions.atomic.mine_and_collect(self, pos)
+    minetest.log('ia_fake_player.mine_and_collect()')
 
     -- 1. Execute the Atomic Dig
-    local success = ia_dunce.dig(self, pos)
+    local success = ia_fake_player.actions.atomic.dig(self, pos)
 
     -- 2. If successful, pick up the resulting items
     if success then
         -- We wait a tiny bit for the engine to spawn the items or
         -- just call pickup_nearby immediately.
-        ia_dunce.pickup_nearby(self, 2.0)
+        ia_fake_player.actions.primitive.pickup_nearby(self, 2.0)
     end
 
     return success
