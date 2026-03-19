@@ -88,6 +88,12 @@ function ia_fake_player.get_formspec_items_hunger_ng(mob_id, x, y, count)
     --if not hunger_ng.sleep_disabled(mob_id) then
         fs_hunger     = fs_hunger .. ia_fake_player.get_formspec_item(x, y, hunger_ng.sleep_bar_image,  "Sleep", hunger_info.sleep.exact)
     x, y, count       = increment_counters(x, 2.6, y, 0.5, count, 3)
+
+    if ia_gender.is_female(mob_id) then -- TODO more nuanced
+        fs_hunger     = fs_hunger .. ia_fake_player.get_formspec_item(x, y, hunger_ng.milk_bar_image,   "Milk",  hunger_info.milk.exact)
+    x, y, count       = increment_counters(x, 2.6, y, 0.5, count, 3)
+    end
+
     return fs_hunger, x, y, count
 end
 

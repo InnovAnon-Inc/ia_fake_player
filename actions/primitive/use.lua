@@ -43,3 +43,25 @@ function ia_fake_player.actions.primitive.use(self, pos)
     
     return true
 end
+
+--- Mimics a player consuming/using an item from their inventory.
+function ia_fake_player.actions.primitive.use_item(self, item_name)
+	minetest.log('ia_fake_player.actions.primitive.use_item('..item_name..')')
+	local inv = self:get_inventory()
+
+	-- We remove one to 'use' it
+	local stack = inv:remove_item("main", ItemStack(item_name))
+	if stack:is_empty() then return false end
+
+	local def = core.registered_items[item_name]
+	if def and def.on_use then
+		-- Pointed_thing is 'nothing' for self-consumption
+		local leftover = def.on_use(stack, self.fake_player, {type="nothing"})
+		if leftover then inv:add_item("main", leftover) end
+		return true
+	end
+
+	-- If no on_use, put it back
+	inv:add_item("main", stack)
+	return false
+end
