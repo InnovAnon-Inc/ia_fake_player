@@ -137,6 +137,7 @@ assert(ia_util ~= nil)
 local modname                    = minetest.get_current_modname() or "ia_fake_player"
 local storage                    = minetest.get_mod_storage()
 ia_fake_player                   = {}
+ia_fake_player.mod               = 'ia'
 
 -- Store originals to prevent infinite recursion in overrides
 ia_fake_player.engine_get_connected_players = minetest.get_connected_players
@@ -309,3 +310,6 @@ minetest.register_globalstep(function(dtime)
         end
     end
 end)
+
+ia_fake_player.register_actor(modname..":example", {})
+

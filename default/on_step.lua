@@ -239,6 +239,10 @@ function ia_fake_player.default_behavior_loop_hunger_ng(self)
     assert(pee    ~= nil)
     assert(milk   ~= nil)
 
+    -- TODO handle stats in critical ranges
+    -- TODO handle stats above production thresholds
+    -- TODO handle longer term concerns (i.e., sleep because ... better to "charge the battery" if we're not using it)
+
     -- TODO check health (heals)
     -- TODO check thirst (quenches)
     -- TODO check hunger (satiates)

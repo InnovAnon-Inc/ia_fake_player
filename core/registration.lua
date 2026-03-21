@@ -141,7 +141,11 @@ function ia_fake_player.register_actor(name, definition)
         local data = minetest.deserialize(staticdata) or {} -- NOTE testing (mapblock)
 
 	if data then
-		self.persistent  = ((data.persistent ~= nil and data.persistent) or true)
+		if data.persistent ~= nil then
+	        self.persistent  = data.persistent
+	        else
+		self.persistent  = true
+	        end
 		self.personality = data.personality
 	end
 
@@ -161,7 +165,8 @@ function ia_fake_player.register_actor(name, definition)
             gender      = self.gender,
             mob_name    = self.mob_name,
             state       = state,
-	    persistent  = (self._forceload_handle ~= nil), -- NOTE testing (mapblock)
+	    --persistent  = (self._forceload_handle ~= nil), -- NOTE testing (mapblock)
+	    persistent  = self.persistent,
 	    personality = self.personality,
         })
     end
@@ -192,23 +197,32 @@ function ia_fake_player.register_actor(name, definition)
     local user_on_step = definition.on_step
     final_def.on_step = function(self, dtime)
         if not self.object or not self.object:get_pos() then
+                -- TODO ??? ia_fake_player.set_persistence(self, false) -- Cleanup on death
             ia_fake_player.unregister_active(self.mob_name)
             return
         end
+        --if not self.object:get_luaentity() then return end
 
-	if self._forceload_handle then -- NOTE testing (mapblock)
+	--if self._forceload_handle then -- NOTE testing (mapblock)
+	if self.persistent then
             local pos = self.object:get_pos()
             -- Only re-anchor if we've moved significantly to save CPU
-            if not self._last_load_pos or vector.distance(pos, self._last_load_pos) > 8 then -- TODO make sure this is accurate (don't want weird edge cases where the bug sometimes re-emerges)
+            --if not self._last_load_pos or vector.distance(pos, self._last_load_pos) > 8 then -- TODO make sure this is accurate (don't want weird edge cases where the bug sometimes re-emerges)
+            if pos and self._last_forceload_pos then
+            if vector.distance(pos, self._last_forceload_pos) > 8 then
                 ia_fake_player.set_persistence(self, true)
                 self._last_load_pos = pos
+            end
             end
         end
 
         -- Handle Drowning, Falling, and Fire
         ia_fake_player.handle_environment_effects(self, dtime)
 
-        if self:get_hp() <= 0 then return end
+        if self:get_hp() <= 0 then
+                ia_fake_player.set_persistence(self, false) -- Cleanup on death
+		return
+	end
 
         if user_on_step then
             user_on_step(self, dtime)
@@ -233,9 +247,16 @@ function ia_fake_player.set_persistence(self, enabled)
 
     if enabled then
         -- We use the pos directly; forceload_block returns the pos it locked
-        self._forceload_handle = pos
-        minetest.forceload_block(pos, true) -- 'true' makes it persistent across restarts
-        minetest.log("action", "[ia_fake_player] Forceloading block at " .. minetest.pos_to_string(pos) .. " for " .. (self.mob_name or "unknown"))
+        --self._forceload_handle = pos
+        self._forceload_handle = vector.new(pos)
+        --minetest.forceload_block(pos, true) -- 'true' makes it persistent across restarts
+        --minetest.log("action", "[ia_fake_player] Forceloading block at " .. minetest.pos_to_string(pos) .. " for " .. (self.mob_name or "unknown"))
+        local success = minetest.forceload_block(pos, false)
+        if success then
+            self._last_forceload_pos = vector.new(pos)
+        else
+            log("warning", "[ia_fake_player] Failed to forceload for " .. (self.mob_name or "unknown"))
+        end
     end
 end
 
@@ -258,3 +279,40 @@ end
 --        return old_get_valid_player(self, player, msg)
 --    end
 --end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

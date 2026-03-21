@@ -10,6 +10,7 @@ function ia_fake_player:set_look_vertical(radians)
   return self.object:set_look_vertical(radians)
 end
 function ia_fake_player:get_look_horizontal()
+  core.log('player.lua get_look_horizontal()')
   return self.object:get_look_horizontal()
 end
 function ia_fake_player:set_look_horizontal(radians)
